@@ -20,8 +20,7 @@ class DummyHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"OK")
 
 def run_server():
-    PORT = int(os.getenv("PORT", 1551))
-    HTTPServer(("0.0.0.0", PORT), DummyHandler).serve_forever()
+    HTTPServer(("0.0.0.0", 1551), DummyHandler).serve_forever()
 
 # --------------------------
 # Veri Kaydetme
@@ -64,7 +63,7 @@ def get_group(chat_id):
 # Mesaj Oluşturma
 # --------------------------
 def build_text(group):
-    text = "*🔸🔶 İTKAN | Kur’an Akademisi 🔶🔸*\n\n"
+    text = "*🔸🔶İTKAN | Kur’an Akademisi🔶🔸*\n\n"
 
     text += "*🔸 Katılımcılar:*\n"
     if group["participants"]:
@@ -122,7 +121,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.effective_chat.id)
     group = get_group(chat_id)
 
+    # 🔵 Oturum aktifse → eski mesaj silinir, aynı liste tekrar gönderilir
     if group["active"]:
+
         if group["message_id"]:
             try:
                 await context.bot.delete_message(
@@ -142,6 +143,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         group["message_id"] = msg.message_id
         save_state()
         return
+
+    # 🔴 Oturum kapalıysa → yeni temiz oturum başlatılır (eski mesaj silinmez)
 
     group["participants"] = {}
     group["listeners"] = []

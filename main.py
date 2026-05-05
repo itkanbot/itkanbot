@@ -8,10 +8,14 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 STATE_FILE = "state.json"
 
+# 🔴 حماية: إذا التوكن غير موجود
+if not TOKEN:
+    raise ValueError("TELEGRAM_TOKEN is not set")
+
 groups = {}
 
 # --------------------------
-# Dummy HTTP Server (Railway için)
+# Dummy HTTP Server (Railway)
 # --------------------------
 class DummyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -20,10 +24,11 @@ class DummyHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"OK")
 
 def run_server():
-    HTTPServer(("0.0.0.0", 1551), DummyHandler).serve_forever()
+    port = int(os.getenv("PORT", 8000))
+    HTTPServer(("0.0.0.0", port), DummyHandler).serve_forever()
 
 # --------------------------
-# Veri Kaydetme
+# حفظ البيانات
 # --------------------------
 def save_state():
     with open(STATE_FILE, "w", encoding="utf-8") as f:
@@ -38,7 +43,7 @@ def load_state():
         groups = {}
 
 # --------------------------
-# Yardımcı Fonksiyonlar
+# Helpers
 # --------------------------
 async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -60,10 +65,10 @@ def get_group(chat_id):
     return groups[chat_id]
 
 # --------------------------
-# Mesaj Oluşturma
+# الرسالة
 # --------------------------
 def build_text(group):
-    text = "*🔸🔶İTKAN | Kur’an Akademisi🔶🔸*\n\n"
+    text = "*🔸🔶 İTKAN | Kur’an Akademisi 🔶🔸*\n\n"
 
     text += "*🔸 Katılımcılar:*\n"
     if group["participants"]:
@@ -107,7 +112,7 @@ def build_keyboard():
     ])
 
 # --------------------------
-# /start Komutu
+# /start
 # --------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -121,15 +126,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.effective_chat.id)
     group = get_group(chat_id)
 
-    # 🔵 Oturum aktifse → eski mesaj silinir, aynı liste tekrar gönderilir
     if group["active"]:
-
         if group["message_id"]:
             try:
-                await context.bot.delete_message(
-                    chat_id=chat_id,
-                    message_id=group["message_id"]
-                )
+                await context.bot.delete_message(chat_id=chat_id, message_id=group["message_id"])
             except:
                 pass
 
@@ -143,8 +143,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         group["message_id"] = msg.message_id
         save_state()
         return
-
-    # 🔴 Oturum kapalıysa → yeni temiz oturum başlatılır (eski mesaj silinmez)
 
     group["participants"] = {}
     group["listeners"] = []
@@ -161,7 +159,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_state()
 
 # --------------------------
-# Buton İşlemleri
+# الأزرار
 # --------------------------
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -230,7 +228,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # --------------------------
-# Main
+# تشغيل السيرفر + البوت
 # --------------------------
 def main():
     load_state()
